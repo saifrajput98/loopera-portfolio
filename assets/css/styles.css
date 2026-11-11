@@ -54,7 +54,6 @@
       letter-spacing: .11em;
       text-transform: uppercase;
     }
-    .grecaptcha-badge { visibility: hidden; }
     .eyebrow { display: flex; align-items: center; gap: 11px; color: #66665d; }
     .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--olive); box-shadow: 0 0 0 4px rgba(168,183,109,.16); }
     .site-header {
@@ -537,3 +536,6 @@
     .field-error[hidden] { display: none; }
     .project-form [aria-invalid="true"] { border-color: #b3402a; box-shadow: 0 0 0 3px rgba(179,64,42,.12); }
 
+
+.grecaptcha-badge { visibility: hidden; }
+.form-privacy a { color: inherit; text-decoration: underline; }

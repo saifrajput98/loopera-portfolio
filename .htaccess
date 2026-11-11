@@ -2,6 +2,9 @@
 Options -Indexes -MultiViews
 ServerSignature Off
 
+# Library files are never requested directly
+RedirectMatch 404 ^/phpmailer/
+
 # Canonical host: www -> apex (matches <link rel=canonical>)
 RewriteCond %{HTTP_HOST} ^www\.looperatech\.com$ [NC]
 RewriteRule ^ https://looperatech.com%{REQUEST_URI} [L,R=301]

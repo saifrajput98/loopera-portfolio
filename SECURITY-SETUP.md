@@ -1,25 +1,30 @@
 # Loopera — setup & launch checklist
 
-Static site. The contact form posts to `/contact.php` (PHP 7.4+/8.x on Apache/cPanel). Nothing secret appears in HTML/JS.
+Static site + PHP contact form (`contact.php`, PHPMailer SMTP, reCAPTCHA v3). PHP 8.1+ on Apache/cPanel.
 
 ## 1. Deploy
-Upload ONLY: `index.html`, `contact.php`, `assets/`, `.well-known/`, `.htaccess`, `favicon.ico`, `robots.txt`, `sitemap.xml`, `site.webmanifest`.
-Do not upload `package.json`, `scripts/`, `.github/`, `*.md` or `nginx.conf.example`.
+Upload/deploy ONLY: `index.html`, `contact.php`, `phpmailer/`, `assets/`, `.well-known/`, `.htaccess`, `favicon.ico`, `robots.txt`, `sitemap.xml`, `site.webmanifest`.
+With cPanel Git deploy, `.cpanel.yml` does this: replace `USERNAME` in it first.
 
-## 2. Contact form
-1. In `contact.php` set `TO_EMAIL`, `FROM_EMAIL` and `ALLOWED_ORIGINS`.
-2. `FROM_EMAIL` must be a real mailbox on your domain (create it in cPanel) so mail passes SPF/DKIM.
-3. Test with a real enquiry, then check the spam folder. If mail never arrives, ask your host whether PHP `mail()` is enabled, or tell me and I'll switch it to SMTP.
-4. Protection: honeypot field, 3-second minimum fill time, per-IP rate limit (3 per 10 min, 10 per day), strict validation and a fixed recipient. There is no CAPTCHA now; if spam appears, add hCaptcha or reCAPTCHA.
+## 2. Secrets file (NOT in git, NOT in public_html)
+Create `/home/<cpanel-user>/loopera-config.php` (one level above `public_html`):
 
-## 3. DNS for email (SPF, DKIM, DMARC)
-Enable SPF and DKIM in cPanel (Email Deliverability) and add DMARC: `v=DMARC1; p=none; rua=mailto:dmarc@looperatech.com`. Move to `quarantine`, then `reject`, after 2–4 weeks of clean reports.
+    <?php
+    return [
+      'host'   => 'mail.looperatech.com',
+      'user'   => 'info@looperatech.com',
+      'pass'   => 'MAILBOX_PASSWORD',
+      'recaptcha_secret' => 'RECAPTCHA_SECRET_KEY',
+      'admins' => ['info@looperatech.com', 'saifrajput98@gmail.com'],
+    ];
 
-## 4. HTTPS & headers
-Headers live in `.htaccess` (Apache) or `nginx.conf.example` (Nginx). Only add `preload` to HSTS once every subdomain is HTTPS. The CSP allows one inline script (the `js-ready` line in `<head>`, pinned by hash). If you edit that line, regenerate the hash.
+The site key (public) is `RECAPTCHA_SITE_KEY` at the top of the form code in `assets/js/main.js`.
 
-## 5. Keep it updated
-`npm install` → `npm outdated` → `npm update` → `npm run vendor`. Dependabot opens weekly PRs. Renew `.well-known/security.txt` before its Expires date.
+## 3. Troubleshooting
+- cPanel → Errors (or `error_log` in `public_html`) shows lines such as `Loopera admin mail failed`, `reCAPTCHA rejected`, `config file missing`.
+- SMTP: use the "Secure SSL/TLS" settings from cPanel → Email Accounts → Connect Devices. For port 587 use `ENCRYPTION_STARTTLS` and `Port = 587` in `makeMailer()`.
+- reCAPTCHA: the domain must be listed on the key; `MIN_SCORE` in `contact.php` defaults to 0.5.
+- Enable SPF + DKIM (cPanel → Email Deliverability) and add a DMARC record.
 
-## 6. Test after launch
-securityheaders.com · ssllabs.com/ssltest · observatory.mozilla.org · mail-tester.com · MXToolbox.
+## 4. Headers
+In `.htaccess` (Apache) or `nginx.conf.example`. The CSP allows Google reCAPTCHA and one inline script pinned by hash.
