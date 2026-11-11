@@ -60,6 +60,7 @@ const projectDialog = document.querySelector('#project-dialog');
     document.querySelectorAll('[data-open-project-form]').forEach(trigger => {
       trigger.addEventListener('click', event => {
         event.preventDefault();
+        loadRecaptcha().catch(() => {});
         lastFormTrigger = trigger;
         projectForm.reset();
         projectForm.hidden = false;
@@ -79,6 +80,17 @@ const projectDialog = document.querySelector('#project-dialog');
       if (lastFormTrigger?.isConnected) lastFormTrigger.focus();
     });
         const FORM_ENDPOINT = '/contact.php';
+        const RECAPTCHA_SITE_KEY = '6LehHxsuAAAAAKN9TlPEUopYI5rke8Za7v-MVpvY';
+let recaptchaPromise = null;
+const loadRecaptcha = () => recaptchaPromise || (recaptchaPromise = new Promise((resolve, reject) => {
+  const s = document.createElement('script');
+  s.src = 'https://www.google.com/recaptcha/api.js?render=' + RECAPTCHA_SITE_KEY;
+  s.async = true;
+  s.onload = () => grecaptcha.ready(resolve);
+  s.onerror = () => { recaptchaPromise = null; reject(new Error('recaptcha-load')); };
+  document.head.append(s);
+}));
+const getRecaptchaToken = async () => { await loadRecaptcha(); return grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'contact' }); };
     const EMAIL_RE = /^[A-Za-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
     const TAG_RE = /<\s*\/?\s*[a-z!][^>]*>/i;
     const CTRL_RE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
@@ -148,10 +160,11 @@ const projectDialog = document.querySelector('#project-dialog');
       submitLabel.textContent = 'Sending… ';
       formStatus.textContent = 'Sending your note…';
       try {
+        const token = await getRecaptchaToken();
         const response = await fetch(FORM_ENDPOINT, {
           method: 'POST', credentials: 'same-origin', referrerPolicy: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ name: v.name, email: v.email, service: v.service, message: v.message, website: '', ts: openedAt })
+      body: JSON.stringify({ name: v.name, email: v.email, service: v.service, message: v.message, website: '', ts: openedAt, 'g-recaptcha-response': token })
         });
         let result = {};
         try { result = await response.json(); } catch (_) {}
