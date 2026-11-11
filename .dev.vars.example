@@ -1,8 +1,0 @@
-# Copy to .dev.vars for LOCAL testing only (never commit .dev.vars). In production set these in
-# Cloudflare Pages > Settings > Environment variables (encrypt the secrets).
-# Cloudflare's official always-pass Turnstile TEST keys:
-TURNSTILE_SECRET=1x0000000000000000000000000000000AA
-RESEND_API_KEY=re_xxxxxxxx
-TO_EMAIL=info@looperatech.com
-FROM_EMAIL=Loopera <hello@looperatech.com>
-ALLOWED_ORIGIN=https://looperatech.com,http://localhost:8788

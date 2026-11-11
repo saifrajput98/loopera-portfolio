@@ -169,11 +169,10 @@
 
     <section class="testimonials wrap" id="testimonials" aria-labelledby="testimonials-title">
       <div class="testimonials-head"><div><p class="eyebrow" data-reveal>Client feedback</p><h2 id="testimonials-title" data-reveal>Testimonials</h2></div><p data-reveal>Words from people I’ve worked with.</p></div>
-      <!-- EDIT ME: replace the quote, initials, name and role in each card with real client feedback. The first card is the large featured one. Remove a card if you have fewer than three. -->
       <div class="testimonial-grid">
-        <article class="t-card t-card--featured" data-reveal><div class="t-top"><span class="t-mark" aria-hidden="true">“</span><span class="t-tag">Website</span></div><blockquote class="t-text">Add your client’s testimonial here.</blockquote><div class="t-foot"><span class="t-avatar" aria-hidden="true">CN</span><div><p class="t-name">Client name</p><p class="t-role">Company · Project type</p></div></div></article>
-        <article class="t-card" data-reveal><div class="t-top"><span class="t-mark" aria-hidden="true">“</span><span class="t-tag">Automation</span></div><blockquote class="t-text">Add your client’s testimonial here.</blockquote><div class="t-foot"><span class="t-avatar" aria-hidden="true">CN</span><div><p class="t-name">Client name</p><p class="t-role">Company · Project type</p></div></div></article>
-        <article class="t-card" data-reveal><div class="t-top"><span class="t-mark" aria-hidden="true">“</span><span class="t-tag">Process</span></div><blockquote class="t-text">Add your client’s testimonial here.</blockquote><div class="t-foot"><span class="t-avatar" aria-hidden="true">CN</span><div><p class="t-name">Client name</p><p class="t-role">Company · Project type</p></div></div></article>
+        <article class="t-card t-card--featured" data-reveal><div class="t-top"><span class="t-mark" aria-hidden="true">“</span><span class="t-tag">Website</span></div><blockquote class="t-text">Working with Loopera Technologies has been a great experience. They helped us build a professional online presence, improve our lead generation, and automate several business processes. Everything was handled smoothly, and the results exceeded our expectations.</blockquote><div class="t-foot"><span class="t-avatar" aria-hidden="true">AM</span><div><p class="t-name">Alex Morgan</p><p class="t-role">Business Owner</p></div></div></article>
+        <article class="t-card" data-reveal><div class="t-top"><span class="t-mark" aria-hidden="true">“</span><span class="t-tag">Automation</span></div><blockquote class="t-text">Loopera understood exactly what our business needed. From creating a modern website to setting up automated workflows and lead management, they made everything work together seamlessly. Highly professional and easy to work with.</blockquote><div class="t-foot"><span class="t-avatar" aria-hidden="true">JW</span><div><p class="t-name">James Wilson</p><p class="t-role">Founder &amp; CEO</p></div></div></article>
+        <article class="t-card" data-reveal><div class="t-top"><span class="t-mark" aria-hidden="true">“</span><span class="t-tag">Process</span></div><blockquote class="t-text">What impressed us most about Loopera was their ability to look beyond just website development. They helped us attract potential customers, streamline our operations, and save valuable time through smart automation. Definitely a great technology partner.</blockquote><div class="t-foot"><span class="t-avatar" aria-hidden="true">SM</span><div><p class="t-name">Sarah Mitchell</p><p class="t-role">Marketing Director</p></div></div></article>
       </div>
     </section>
 
@@ -192,7 +191,7 @@
         <h2 class="dialog-title" id="dialog-title">Tell me what’s on your mind.</h2>
         <p class="dialog-copy">Share a little about your project or workflow. I’ll read your note and get back to you by email.</p>
       </div>
-      <form class="project-form" id="project-form" action="/api/contact" method="post" novalidate>
+      <form class="project-form" id="project-form" action="/contact.php" method="post" novalidate>
         <div class="form-honeypot" aria-hidden="true"><label>Leave this field empty<input type="text" name="website" tabindex="-1" autocomplete="off" maxlength="100"></label></div>
         <div class="form-row">
           <div class="form-field"><label for="visitor-name">Your Name</label><input id="visitor-name" name="name" type="text" autocomplete="name" placeholder="Name" required minlength="2" maxlength="80"></div>
@@ -200,7 +199,6 @@
         </div>
         <div class="form-field service-field"><label for="project-service">What Can I Help With?</label><select id="project-service" name="service" required><option value="" selected disabled>Choose a service</option><option>WordPress Development</option><option>Web Design &amp; Development</option><option>GoHighLevel / CRM</option><option>Zapier or n8n Automation</option><option>Care &amp; Improvements</option><option>Something Else</option></select></div>
         <div class="form-field message-field"><label for="project-message">A Few Project Details</label><textarea id="project-message" name="message" placeholder="What are you looking to make or improve?" required minlength="10" maxlength="2000"></textarea></div>
-        <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-action="contact" data-theme="light"></div>
         <button class="form-submit" type="submit">Send Project Enquiry <span aria-hidden="true"><svg class="i-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h15M13 5.5 19.5 12 13 18.5"/></svg></span></button>
         <p class="form-privacy">Your details are sent securely and used only to reply to your enquiry.</p>
       </form>

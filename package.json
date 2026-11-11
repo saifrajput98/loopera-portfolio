@@ -2,10 +2,10 @@
   "name": "loopera-portfolio",
   "private": true,
   "version": "1.0.0",
-  "description": "Loopera portfolio — static site + Cloudflare Pages Function for the contact form",
+  "description": "Loopera portfolio — static site with a PHP contact form",
   "scripts": {
     "vendor": "node scripts/vendor.mjs",
-    "dev": "wrangler pages dev . --kv RATE_KV",
+    "dev": "php -S localhost:8000",
     "outdated": "npm outdated",
     "audit": "npm audit"
   },
@@ -13,8 +13,5 @@
     "@fontsource/dm-mono": "^5.2.0",
     "@fontsource/dm-sans": "^5.2.0",
     "@fontsource/playfair-display": "^5.2.0"
-  },
-  "devDependencies": {
-    "wrangler": "^4.0.0"
   }
 }

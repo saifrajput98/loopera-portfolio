@@ -57,21 +57,9 @@ const projectDialog = document.querySelector('#project-dialog');
     const formStatus = document.querySelector('#form-status');
     const formClose = projectDialog.querySelector('.dialog-close');
     let lastFormTrigger = null;
-    // Turnstile is third-party; load it only when someone shows intent to open the form.
-    let turnstileRequested = false;
-    const loadTurnstile = () => {
-      if (turnstileRequested) return;
-      turnstileRequested = true;
-      const s = document.createElement('script');
-      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-      s.async = true; s.defer = true;
-      document.head.append(s);
-    };
     document.querySelectorAll('[data-open-project-form]').forEach(trigger => {
-      ['pointerenter', 'touchstart', 'focus'].forEach(type => trigger.addEventListener(type, loadTurnstile, { once: true, passive: true }));
       trigger.addEventListener('click', event => {
         event.preventDefault();
-        loadTurnstile();
         lastFormTrigger = trigger;
         projectForm.reset();
         projectForm.hidden = false;
@@ -79,7 +67,6 @@ const projectDialog = document.querySelector('#project-dialog');
         formStatus.textContent = '';
         openedAt = Date.now();
         fieldNames.forEach(k => { projectForm.elements[k].removeAttribute('aria-invalid'); document.getElementById(`err-${k}`).hidden = true; });
-        if (window.turnstile) window.turnstile.reset();
         if (!projectDialog.open) projectDialog.showModal();
         requestAnimationFrame(() => projectForm.querySelector('input[name="name"]').focus());
       });
@@ -91,7 +78,7 @@ const projectDialog = document.querySelector('#project-dialog');
     projectDialog.addEventListener('close', () => {
       if (lastFormTrigger?.isConnected) lastFormTrigger.focus();
     });
-        const FORM_ENDPOINT = '/api/contact';
+        const FORM_ENDPOINT = '/contact.php';
     const EMAIL_RE = /^[A-Za-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
     const TAG_RE = /<\s*\/?\s*[a-z!][^>]*>/i;
     const CTRL_RE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
@@ -153,10 +140,8 @@ const projectDialog = document.querySelector('#project-dialog');
       showErrors(e);
       if (Object.keys(e).length) return;
       const limited = cooldownMessage();
-      const token = new FormData(projectForm).get('cf-turnstile-response');
       formStatus.hidden = false;
       if (limited) { formStatus.textContent = limited; return; }
-      if (!token) { formStatus.textContent = 'Please complete the security check, then send again.'; return; }
       const submitButton = projectForm.querySelector('.form-submit');
       const submitLabel = submitButton.firstChild;
       submitButton.disabled = true;
@@ -166,7 +151,7 @@ const projectDialog = document.querySelector('#project-dialog');
         const response = await fetch(FORM_ENDPOINT, {
           method: 'POST', credentials: 'same-origin', referrerPolicy: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ name: v.name, email: v.email, service: v.service, message: v.message, website: '', ts: openedAt, 'cf-turnstile-response': token })
+          body: JSON.stringify({ name: v.name, email: v.email, service: v.service, message: v.message, website: '', ts: openedAt })
         });
         let result = {};
         try { result = await response.json(); } catch (_) {}
@@ -180,7 +165,6 @@ const projectDialog = document.querySelector('#project-dialog');
         emailFallback.href = 'mailto:info@looperatech.com';
         emailFallback.textContent = 'info@looperatech.com';
         formStatus.append(emailFallback);
-        if (window.turnstile) window.turnstile.reset();
       } finally {
         submitButton.disabled = false;
         submitLabel.textContent = 'Send Project Enquiry ';
