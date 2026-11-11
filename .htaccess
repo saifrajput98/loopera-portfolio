@@ -2,7 +2,11 @@
 Options -Indexes -MultiViews
 ServerSignature Off
 
-# Force HTTPS (works behind proxies / Cloudflare too)
+# Canonical host: www -> apex (matches <link rel=canonical>)
+RewriteCond %{HTTP_HOST} ^www\.looperatech\.com$ [NC]
+RewriteRule ^ https://looperatech.com%{REQUEST_URI} [L,R=301]
+
+# Force HTTPS (works behind proxies too)
 RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
@@ -10,7 +14,7 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 # Block dotfiles (except /.well-known) and sensitive file types
 RewriteRule (^|/)\.(?!well-known) - [F,L]
-<FilesMatch "\.(env|log|bak|sql|ini|toml|lock|md|mjs|yml|yaml)$|^(package\.json|package-lock\.json|wrangler\.toml)$">
+<FilesMatch "\.(env|log|bak|sql|ini|toml|lock|md|mjs|yml|yaml)$|^(package\.json|package-lock\.json)$">
   Require all denied
 </FilesMatch>
 
@@ -23,7 +27,7 @@ RewriteRule (^|/)\.(?!well-known) - [F,L]
   Header always set Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=(), interest-cohort=()"
   Header always set Cross-Origin-Opener-Policy "same-origin"
   Header always set Cross-Origin-Resource-Policy "same-origin"
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-2y2a0dOoTQMLId5AkFMpEmeGY4/i1nmlbvhGrI7o2/E=' https://challenges.cloudflare.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; form-action 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-2y2a0dOoTQMLId5AkFMpEmeGY4/i1nmlbvhGrI7o2/E='; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
 </IfModule>
 
 # --- Performance: compression + browser caching ---

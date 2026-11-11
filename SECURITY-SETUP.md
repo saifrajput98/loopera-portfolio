@@ -1,30 +1,25 @@
-# Loopera — security setup & launch checklist
+# Loopera — setup & launch checklist
 
-The site is static, and the contact form posts to `/api/contact` (a Cloudflare Pages Function in
-`functions/api/contact.js`). Nothing secret ever appears in HTML/JS.
+Static site. The contact form posts to `/contact.php` (PHP 7.4+/8.x on Apache/cPanel). Nothing secret appears in HTML/JS.
 
-## 1. One-time setup (before launch)
-1. **Host** on Cloudflare Pages (recommended — free SSL, Functions, Turnstile, WAF). Connect the repo, no build command, output dir `/`.
-2. **Turnstile:** Cloudflare dashboard → Turnstile → add your domain → put the *site key* in `index.html` (`data-sitekey="YOUR_TURNSTILE_SITE_KEY"`) and the *secret key* as the `TURNSTILE_SECRET` secret.
-3. **Email service (Resend):** create account → add & verify your domain → create an API key → set `RESEND_API_KEY` (secret).
-4. **Environment variables** (Pages → Settings): `TO_EMAIL` (where enquiries arrive), `FROM_EMAIL` (e.g. `Loopera <hello@looperatech.com>`), `ALLOWED_ORIGIN` (`https://looperatech.com`).
-5. **Rate limiting:** Workers & Pages → KV → create namespace → bind it to the project as `RATE_KV` (3 sends / 10 min and 10 / day per IP). Also add a Cloudflare WAF rate-limiting rule for `POST /api/contact`.
-6. Domain is already set to `looperatech.com` in index.html, robots.txt, sitemap.xml and .well-known/security.txt — just confirm it matches your live domain.
+## 1. Deploy
+Upload ONLY: `index.html`, `contact.php`, `assets/`, `.well-known/`, `.htaccess`, `favicon.ico`, `robots.txt`, `sitemap.xml`, `site.webmanifest`.
+Do not upload `package.json`, `scripts/`, `.github/`, `*.md` or `nginx.conf.example`.
 
-## 2. DNS for email (SPF, DKIM, DMARC)
-Resend shows the exact records after you add your domain — copy them verbatim.
-- **SPF** (TXT): `v=spf1 include:<provider-value> ~all` — one SPF record per domain only.
-- **DKIM** (TXT/CNAME): the key records your provider gives you.
-- **DMARC** (TXT at `_dmarc`): start with `v=DMARC1; p=none; rua=mailto:dmarc@looperatech.com`, watch reports for 2–4 weeks, then move to `p=quarantine`, then `p=reject`.
+## 2. Contact form
+1. In `contact.php` set `TO_EMAIL`, `FROM_EMAIL` and `ALLOWED_ORIGINS`.
+2. `FROM_EMAIL` must be a real mailbox on your domain (create it in cPanel) so mail passes SPF/DKIM.
+3. Test with a real enquiry, then check the spam folder. If mail never arrives, ask your host whether PHP `mail()` is enabled, or tell me and I'll switch it to SMTP.
+4. Protection: honeypot field, 3-second minimum fill time, per-IP rate limit (3 per 10 min, 10 per day), strict validation and a fixed recipient. There is no CAPTCHA now; if spam appears, add hCaptcha or reCAPTCHA.
 
-## 3. HTTPS & headers
-- Cloudflare: SSL/TLS → **Full (strict)**, turn on **Always Use HTTPS**, **HSTS** and **Automatic HTTPS Rewrites**.
-- Headers are in `_headers` (Cloudflare Pages/Netlify). Apache → `.htaccess`. Nginx → `nginx.conf.example`. Use only the one matching your host.
-- Only add `preload` to HSTS after the whole domain (and subdomains) is permanently HTTPS.
-- The CSP allows exactly one inline script (the `js-ready` line in `<head>`, pinned by hash). If you edit that line, regenerate the hash.
+## 3. DNS for email (SPF, DKIM, DMARC)
+Enable SPF and DKIM in cPanel (Email Deliverability) and add DMARC: `v=DMARC1; p=none; rua=mailto:dmarc@looperatech.com`. Move to `quarantine`, then `reject`, after 2–4 weeks of clean reports.
 
-## 4. Keep it updated
-`npm install` → `npm outdated` → `npm update` → `npm run vendor` (copies GSAP + fonts into `assets/`). Dependabot (`.github/dependabot.yml`) opens weekly update PRs.
+## 4. HTTPS & headers
+Headers live in `.htaccess` (Apache) or `nginx.conf.example` (Nginx). Only add `preload` to HSTS once every subdomain is HTTPS. The CSP allows one inline script (the `js-ready` line in `<head>`, pinned by hash). If you edit that line, regenerate the hash.
 
-## 5. Test after launch
-securityheaders.com · ssllabs.com/ssltest · observatory.mozilla.org · mail-tester.com (send a test enquiry) · dmarcian/MXToolbox for SPF/DKIM/DMARC.
+## 5. Keep it updated
+`npm install` → `npm outdated` → `npm update` → `npm run vendor`. Dependabot opens weekly PRs. Renew `.well-known/security.txt` before its Expires date.
+
+## 6. Test after launch
+securityheaders.com · ssllabs.com/ssltest · observatory.mozilla.org · mail-tester.com · MXToolbox.

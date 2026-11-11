@@ -535,6 +535,4 @@
     .field-error { margin: 7px 0 0; font: 500 11px/1.4 var(--mono); color: #b3402a; }
     .field-error[hidden] { display: none; }
     .project-form [aria-invalid="true"] { border-color: #b3402a; box-shadow: 0 0 0 3px rgba(179,64,42,.12); }
-    .cf-turnstile { grid-column: 1 / -1; min-height: 0; }
-    .project-form .cf-turnstile { margin-top: 4px; }
 
