@@ -1,6 +1,6 @@
 <?php
 // POST /contact.php — contact form handler (Apache/cPanel + PHP 7.4+).
-// Secrets (SMTP password, reCAPTCHA secret, admin emails) live OUTSIDE public_html in
+// Secrets (SMTP password, admin emails) live OUTSIDE public_html in
 // /home/<cpanel-user>/loopera-config.php  (see SECURITY-SETUP.md).
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -13,7 +13,6 @@ require __DIR__ . '/phpmailer/SMTP.php';
 // ---- CONFIG ----
 const ALLOWED_ORIGINS = ['https://looperatech.com', 'https://www.looperatech.com'];
 const MIN_FILL_MS = 3000;               // forms submitted faster than this are bots
-const MIN_SCORE = 0.5;                  // reCAPTCHA v3 score threshold (lower = more permissive)
 const LIMITS = [[600, 3], [86400, 10]]; // [window seconds, max sends] per IP
 // ----------------
 
@@ -47,8 +46,8 @@ if (!is_array($in) || array_is_list($in)) reply(400, ['ok' => false, 'error' => 
 
 // Honeypot (pretend success) + too-fast check
 if (!empty($in['website'])) reply(200, ['ok' => true]);
-$ts = $in['ts'] ?? null;
-if (!is_numeric($ts) || (microtime(true) * 1000 - $ts) < MIN_FILL_MS) reply(400, ['ok' => false, 'error' => 'too_fast']);
+$elapsed = $in['elapsed'] ?? null; // ms the form was open, measured in the browser (avoids client/server clock drift)
+if (!is_numeric($elapsed) || $elapsed < MIN_FILL_MS) reply(400, ['ok' => false, 'error' => 'too_fast']);
 
 // Per-IP rate limit (file based, system temp dir). Uses REMOTE_ADDR only; headers can be spoofed.
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
@@ -68,31 +67,6 @@ if ($fh && flock($fh, LOCK_EX)) {
     flock($fh, LOCK_UN);
 }
 if ($fh) fclose($fh);
-
-// reCAPTCHA v3 verification
-$token = is_string($in['g-recaptcha-response'] ?? null) ? $in['g-recaptcha-response'] : '';
-if ($token === '' || strlen($token) > 4096) reply(400, ['ok' => false, 'error' => 'captcha_failed']);
-$post = http_build_query(['secret' => $cfg['recaptcha_secret'], 'response' => $token, 'remoteip' => $ip]);
-$res = false;
-if (function_exists('curl_init')) {
-    $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
-    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $post, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 5]);
-    $res = curl_exec($ch);
-    curl_close($ch);
-} else {
-    $res = @file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, stream_context_create(['http' => [
-        'method' => 'POST', 'header' => "Content-Type: application/x-www-form-urlencoded\r\n", 'content' => $post, 'timeout' => 5,
-    ]]));
-}
-$v = $res ? json_decode($res, true) : null;
-if (!is_array($v)
-    || empty($v['success'])
-    || ($v['action'] ?? '') !== 'contact'
-    || ($v['score'] ?? 0) < MIN_SCORE
-    || !in_array($v['hostname'] ?? '', ['looperatech.com', 'www.looperatech.com'], true)) {
-    error_log('reCAPTCHA rejected: ' . ($res ?: 'no response'));
-    reply(400, ['ok' => false, 'error' => 'captcha_failed']);
-}
 
 // Validation (mirrors the browser-side rules)
 $name = squash($in['name'] ?? '');
