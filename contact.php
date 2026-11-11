@@ -1,4 +1,11 @@
 <?php
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require __DIR__ . '/phpmailer/Exception.php';
+require __DIR__ . '/phpmailer/PHPMailer.php';
+require __DIR__ . '/phpmailer/SMTP.php';
+
 // POST /contact.php — contact form handler (Apache/cPanel + PHP 7.4+).
 // Edit the CONFIG block, upload this file next to index.html. No third-party services needed.
 
@@ -11,6 +18,8 @@ const LIMITS = [[600, 3], [86400, 10]];               // [window seconds, max se
 // ----------------
 
 const SERVICES = ['WordPress Development', 'Web Design & Development', 'GoHighLevel / CRM', 'Zapier or n8n Automation', 'Care & Improvements', 'Something Else'];
+
+$cfg = require '/home/USERNAME/loopera-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -58,6 +67,30 @@ if ($fh && flock($fh, LOCK_EX)) {
 }
 if ($fh) fclose($fh);
 
+// reCAPTCHA v3 verification
+$token = is_string($in['g-recaptcha-response'] ?? null) ? $in['g-recaptcha-response'] : '';
+if ($token === '' || strlen($token) > 4096) reply(400, ['ok' => false, 'error' => 'captcha_failed']);
+
+$ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
+curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => http_build_query(['secret' => $cfg['recaptcha_secret'], 'response' => $token, 'remoteip' => $ip]),
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 5,
+]);
+$res = curl_exec($ch);
+curl_close($ch);
+$v = $res ? json_decode($res, true) : null;
+
+if (!is_array($v)
+    || empty($v['success'])
+    || ($v['action'] ?? '') !== 'contact'
+    || ($v['score'] ?? 0) < 0.5
+    || !in_array($v['hostname'] ?? '', ['looperatech.com', 'www.looperatech.com'], true)) {
+    error_log('reCAPTCHA rejected: ' . ($res ?: 'no response'));
+    reply(400, ['ok' => false, 'error' => 'captcha_failed']);
+}
+
 // Validation (mirrors the browser-side rules)
 $name = squash($in['name'] ?? '');
 $email = squash($in['email'] ?? '');
@@ -72,15 +105,46 @@ if (!in_array($service, SERVICES, true)) $bad[] = 'service';
 if (len($message) < 10 || len($message) > 2000 || preg_match($tag, $message) || preg_match($ctrl, $message) || preg_match_all('~https?://~i', $message) > 2) $bad[] = 'message';
 if ($bad) reply(400, ['ok' => false, 'error' => 'validation', 'fields' => $bad]);
 
-// Send (plain text; all values are already stripped of newlines where they go into headers)
-$subject = '=?UTF-8?B?' . base64_encode("New Loopera enquiry — $service") . '?=';
-$body = "New enquiry via Loopera\n\nName: $name\nEmail: $email\nService: $service\n\n$message\n";
-$headers = [
-    'From' => 'Loopera <' . FROM_EMAIL . '>',
-    'Reply-To' => $email,
-    'MIME-Version' => '1.0',
-    'Content-Type' => 'text/plain; charset=UTF-8',
-    'X-Mailer' => 'Loopera contact form',
-];
-$ok = @mail(TO_EMAIL, $subject, $body, $headers, '-f' . FROM_EMAIL);
-$ok ? reply(200, ['ok' => true]) : reply(502, ['ok' => false, 'error' => 'send_failed']);
+// Send via SMTP
+
+
+function makeMailer(array $cfg): PHPMailer {
+    $m = new PHPMailer(true);
+    $m->isSMTP();
+    $m->Host = $cfg['host'];
+    $m->SMTPAuth = true;
+    $m->Username = $cfg['user'];
+    $m->Password = $cfg['pass'];
+    $m->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+    $m->Port = 465;
+    $m->CharSet = 'UTF-8';
+    $m->setFrom($cfg['user'], 'Loopera');
+    return $m;
+}
+
+// 1) Notify admins (this one must succeed)
+try {
+    $a = makeMailer($cfg);
+    foreach ($cfg['admins'] as $to) $a->addAddress($to);
+    $a->addReplyTo($email, $name);
+    $a->Subject = "New Loopera enquiry — $service";
+    $a->Body = "New enquiry via Loopera\n\nName: $name\nEmail: $email\nService: $service\n\n$message\n";
+    $a->send();
+} catch (Exception $e) {
+    error_log('Loopera admin mail failed: ' . $e->getMessage());
+    reply(502, ['ok' => false, 'error' => 'send_failed']);
+}
+
+// 2) Confirmation to the visitor (if this fails, the enquiry still counts as sent)
+try {
+    $c = makeMailer($cfg);
+    $c->addAddress($email, $name);
+    $c->addReplyTo($cfg['user'], 'Loopera');
+    $c->Subject = 'Thanks for contacting Loopera';
+    $c->Body = "Hi $name,\n\nThank you for getting in touch. I've received your enquiry about \"$service\" and will get back to you soon, usually within 1–2 working days.\n\nHere is a copy of your message:\n\n$message\n\nBest regards,\nSaif Ur Rehman\nLoopera\nhttps://looperatech.com\n";
+    $c->send();
+} catch (Exception $e) {
+    error_log('Loopera confirmation mail failed: ' . $e->getMessage());
+}
+
+reply(200, ['ok' => true]);

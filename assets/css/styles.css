@@ -54,6 +54,7 @@
       letter-spacing: .11em;
       text-transform: uppercase;
     }
+    .grecaptcha-badge { visibility: hidden; }
     .eyebrow { display: flex; align-items: center; gap: 11px; color: #66665d; }
     .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--olive); box-shadow: 0 0 0 4px rgba(168,183,109,.16); }
     .site-header {
