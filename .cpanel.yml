@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    # Replace USERNAME with your cPanel username
+    - export DEPLOYPATH=/home/looperatech/public_html/
+    - /bin/cp -R index.html contact.php phpmailer assets .well-known .htaccess favicon.ico robots.txt sitemap.xml site.webmanifest $DEPLOYPATH
