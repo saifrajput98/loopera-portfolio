@@ -100,6 +100,10 @@ function makeMailer(array $cfg): PHPMailer {
     $m->Port = 465;
     $m->CharSet = 'UTF-8';
     $m->Timeout = 15;
+    // Same-server SMTP: the certificate is issued for the public hostname, not 'localhost'.
+    if (in_array($cfg['host'], ['localhost', '127.0.0.1'], true)) {
+        $m->SMTPOptions = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false, 'allow_self_signed' => true]];
+    }
     $m->setFrom($cfg['user'], 'Loopera');
     return $m;
 }
