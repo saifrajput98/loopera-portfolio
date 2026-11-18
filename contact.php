@@ -96,8 +96,8 @@ function makeMailer(array $cfg): PHPMailer {
     $m->SMTPAuth = true;
     $m->Username = $cfg['user'];
     $m->Password = $cfg['pass'];
-    $m->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-    $m->Port = 465;
+$m->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+$m->Port = 587;
     $m->CharSet = 'UTF-8';
     $m->Timeout = 15;
     // Same-server SMTP: the certificate is issued for the public hostname, not 'localhost'.
