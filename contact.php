@@ -50,23 +50,27 @@ $elapsed = $in['elapsed'] ?? null; // ms the form was open, measured in the brow
 if (!is_numeric($elapsed) || $elapsed < MIN_FILL_MS) reply(400, ['ok' => false, 'error' => 'too_fast']);
 
 // Per-IP rate limit (file based, system temp dir). Uses REMOTE_ADDR only; headers can be spoofed.
-$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-$file = sys_get_temp_dir() . '/loopera_rl_' . hash('sha256', $ip);
-$fh = fopen($file, 'c+');
-if ($fh && flock($fh, LOCK_EX)) {
+// Only SUCCESSFUL sends are counted, so validation errors / SMTP failures never burn the quota.
+function rateLimit(bool $record): void {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $file = sys_get_temp_dir() . '/loopera_rl_' . hash('sha256', $ip);
+    $fh = fopen($file, 'c+');
+    if (!$fh || !flock($fh, LOCK_EX)) { if ($fh) fclose($fh); return; }
     $now = time();
     $log = array_values(array_filter(array_map('intval', explode("\n", trim(stream_get_contents($fh)))), fn($t) => $t > $now - 86400));
-    foreach (LIMITS as [$win, $max]) {
-        if (count(array_filter($log, fn($t) => $t > $now - $win)) >= $max) {
-            flock($fh, LOCK_UN); fclose($fh);
-            reply(429, ['ok' => false, 'error' => 'rate_limited'], ['Retry-After' => '600']);
+    if (!$record) {
+        foreach (LIMITS as [$win, $max]) {
+            if (count(array_filter($log, fn($t) => $t > $now - $win)) >= $max) {
+                flock($fh, LOCK_UN); fclose($fh);
+                reply(429, ['ok' => false, 'error' => 'rate_limited'], ['Retry-After' => '600']);
+            }
         }
+    } else {
+        $log[] = $now;
+        ftruncate($fh, 0); rewind($fh); fwrite($fh, implode("\n", $log));
     }
-    $log[] = $now;
-    ftruncate($fh, 0); rewind($fh); fwrite($fh, implode("\n", $log));
-    flock($fh, LOCK_UN);
+    flock($fh, LOCK_UN); fclose($fh);
 }
-if ($fh) fclose($fh);
 
 // Validation (mirrors the browser-side rules)
 $name = squash($in['name'] ?? '');
@@ -81,6 +85,8 @@ if (!$email || strlen($email) > 254 || !filter_var($email, FILTER_VALIDATE_EMAIL
 if (!in_array($service, SERVICES, true)) $bad[] = 'service';
 if (len($message) < 10 || len($message) > 2000 || preg_match($tag, $message) || preg_match($ctrl, $message) || preg_match_all('~https?://~i', $message) > 2) $bad[] = 'message';
 if ($bad) reply(400, ['ok' => false, 'error' => 'validation', 'fields' => $bad]);
+
+rateLimit(false); // check only, after validation
 
 // Send via SMTP
 function makeMailer(array $cfg): PHPMailer {
@@ -110,6 +116,8 @@ try {
     error_log('Loopera admin mail failed: ' . $e->getMessage());
     reply(502, ['ok' => false, 'error' => 'send_failed']);
 }
+
+rateLimit(true); // count this successful send
 
 // 2) Confirmation to the visitor (if this fails the enquiry still counts as sent)
 try {
